@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Mood Tracker</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(to bottom right, #f1faee, #a8d0e6);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    h1 {
+      font-size: 2rem;
+      color: #4caf50;
+      margin-bottom: 10px;
+    }
+
+    .open-mood-popup {
+      font-size: 1rem;
+      padding: 10px 20px;
+      background-color: #4caf50;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+
+    .mood-popup {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0, 0, 0, 0.4);
+      display: none;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .popup-content {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      text-align: center;
+      width: 300px;
+    }
+
+    .emoji-row {
+      display: flex;
+      justify-content: space-between;
+      margin: 15px 0;
+    }
+
+    .emoji {
+      font-size: 24px;
+      background: none;
+      border: none;
+      cursor: pointer;
+    }
+
+    .emoji.selected {
+      border: 2px solid #4caf50;
+      border-radius: 8px;
+    }
+
+    textarea {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 10px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+    }
+
+    .submit-btn {
+      padding: 8px 16px;
+      background-color: #4caf50;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    #moodChart {
+      width: 100%;
+      max-width: 500px;
+      max-height: 250px;
+      margin-top: 30px;
+    }
+
+    #calendar-controls {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+      margin-top: 30px;
+    }
+
+    #calendar {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 6px;
+      max-width: 360px;
+      width: 100%;
+      margin-top: 10px;
+    }
+
+    .calendar-cell {
+      padding: 6px;
+      border-radius: 8px;
+      background-color: #f9f9f9;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+      font-weight: bold;
+      text-align: center;
+    }
+
+    .today {
+      border: 2px solid #4caf50;
+    }
+
+    .green {
+      background-color: #C8E6C9;
+    }
+
+    .yellow {
+      background-color: #FFF9C4;
+    }
+
+    .red {
+      background-color: #FFCDD2;
+    }
+  </style>
+</head>
+<body>
+  <h1>Welcome to MindBloom Mood Tracker</h1>
+  <button class="open-mood-popup">Log Today's Mood</button>
+
+  <!-- Mood Popup -->
+  <div class="mood-popup" id="moodPopup">
+    <div class="popup-content">
+      <h2>How are you feeling?</h2>
+      <div class="emoji-row">
+        <button class="emoji">😄</button>
+        <button class="emoji">🙂</button>
+        <button class="emoji">😐</button>
+        <button class="emoji">☹</button>
+        <button class="emoji">😭</button>
+      </div>
+      <textarea placeholder="Add a note (optional)..." rows="3"></textarea>
+      <button class="submit-btn">Save Mood</button>
+    </div>
+  </div>
+
+  <!-- Mood Chart and Calendar -->
+  <canvas id="moodChart"></canvas>
+  <div id="calendar-controls">
+    <button onclick="changeMonth(-1)">Previous</button>
+    <div id="monthDisplay"></div>
+    <button onclick="changeMonth(1)">Next</button>
+  </div>
+  <div id="calendar"></div>
+
+  <script>
+    // mood.js script merged inline
+    const emojis = document.querySelectorAll('.emoji');
+    const textarea = document.querySelector('textarea');
+    const submitBtn = document.querySelector('.submit-btn');
+    const popup = document.getElementById('moodPopup');
+    const openPopupBtn = document.querySelector('.open-mood-popup');
+    let selectedMood = null;
+  
+    openPopupBtn.addEventListener('click', () => {
+      popup.style.display = 'flex';
+    });
+
+    emojis.forEach(emoji => {
+      emoji.addEventListener('click', () => {
+        emojis.forEach(e => e.classList.remove('selected'));
+        emoji.classList.add('selected');
+        selectedMood = emoji.textContent;
+      });
+    });
+
+    submitBtn.addEventListener('click', () => {
+      if (!selectedMood) {
+        alert('Please select a mood before saving!');
+        return;
+      }
+
+      const note = textarea.value;
+      const entry = {
+        mood: selectedMood,
+        note: note.trim(),
+        timestamp: new Date().toISOString()
+      };
+
+      const moodLog = JSON.parse(localStorage.getItem('moodLog')) || [];
+      moodLog.push(entry);
+      localStorage.setItem('moodLog', JSON.stringify(moodLog));
+
+      textarea.value = '';
+      selectedMood = null;
+      emojis.forEach(e => e.classList.remove('selected'));
+      popup.style.display = 'none';
+
+      generateCalendar(currentDate);
+      generateMoodChart(currentDate);
+    });
+
+    // Chart + Calendar logic
+    const moodMap = {
+      '😄': 'green',
+      '🙂': 'green',
+      '😐': 'yellow',
+      '☹': 'red',
+      '😭': 'red'
+    };
+
+    const parseMoodData = () => {
+      const moodLog = JSON.parse(localStorage.getItem('moodLog')) || [];
+      const moodData = {};
+      moodLog.forEach(entry => {
+        const date = new Date(entry.timestamp);
+        const dateStr = date.toISOString().split('T')[0];
+        moodData[dateStr] = moodMap[entry.mood] || 'yellow';
+      });
+      return moodData;
+    };
+
+    let currentDate = new Date();
+
+    function generateCalendar(date = new Date()) {
+      const calendar = document.getElementById('calendar');
+      const moodData = parseMoodData();
+      const year = date.getFullYear();
+      const month = date.getMonth();
+      const firstDay = new Date(year, month, 1);
+      const lastDay = new Date(year, month + 1, 0);
+      const numDays = lastDay.getDate();
+      const startWeekDay = firstDay.getDay();
+
+      calendar.innerHTML = '';
+      document.getElementById('monthDisplay').textContent =
+        date.toLocaleDateString('default', { month: 'long', year: 'numeric' });
+
+      for (let i = 0; i < startWeekDay; i++) {
+        const empty = document.createElement('div');
+        calendar.appendChild(empty);
+      }
+
+      for (let day = 1; day <= numDays; day++) {
+        const cell = document.createElement('div');
+        cell.className = 'calendar-cell';
+        const dateObj = new Date(year, month, day);
+        const dateStr = dateObj.toISOString().split('T')[0];
+        cell.textContent = day;
+
+        if (moodData[dateStr]) {
+          cell.classList.add(moodData[dateStr]);
+        }
+
+        const today = new Date();
+        if (
+          dateObj.getFullYear() === today.getFullYear() &&
+          dateObj.getMonth() === today.getMonth() &&
+          dateObj.getDate() === today.getDate()
+        ) {
+          cell.classList.add('today');
+        }
+
+        calendar.appendChild(cell);
+      }
+    }
+
+    function generateMoodChart(date = new Date()) {
+      const moodLog = JSON.parse(localStorage.getItem('moodLog')) || [];
+      const filteredLog = moodLog.filter(entry => {
+        const entryDate = new Date(entry.timestamp);
+        return (
+          entryDate.getFullYear() === date.getFullYear() &&
+          entryDate.getMonth() === date.getMonth()
+        );
+      });
+
+      const dayLabels = [];
+      const moodValues = [];
+
+      filteredLog.forEach(entry => {
+        const entryDate = new Date(entry.timestamp);
+        const day = entryDate.getDate();
+        const mood = moodMap[entry.mood] || 'yellow';
+        dayLabels.push(day);
+        moodValues.push(mood === 'green' ? 3 : mood === 'yellow' ? 2 : 1);
+      });
+
+      const ctx = document.getElementById('moodChart').getContext('2d');
+      if (window.moodChartInstance) {
+        window.moodChartInstance.destroy();
+      }
+
+      window.moodChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: dayLabels,
+          datasets: [{
+            label: 'Mood Trend',
+            data: moodValues,
+            borderColor: '#4CAF50',
+            backgroundColor: 'rgba(76, 175, 80, 0.1)',
+            tension: 0.3,
+            fill: true,
+            pointRadius: 3,
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: {
+              beginAtZero: true,
+              max: 3,
+              ticks: {
+                stepSize: 1,
+                callback: value => {
+                  if (value === 3) return 'Good';
+                  if (value === 2) return 'Okay';
+                  if (value === 1) return 'Bad';
+                  return '';
+                }
+              }
+            }
+          },
+          plugins: {
+            legend: {
+              display: false
+            }
+          }
+        }
+      });
+    }
+
+    function changeMonth(delta) {
+      currentDate.setMonth(currentDate.getMonth() + delta);
+      generateCalendar(currentDate);
+      generateMoodChart(currentDate);
+    }
+
+    generateCalendar(currentDate);
+    generateMoodChart(currentDate);
+  </script>
+</body>
+</html>

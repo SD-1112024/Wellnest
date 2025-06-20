@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Resources | WellNest 🌱</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #dfefff, #e6fff7);
+      color: #333;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+      padding: 2rem;
+    }
+
+    .container {
+      background-color: #ffffffee;
+      padding: 2rem 2.5rem;
+      border-radius: 20px;
+      max-width: 700px;
+      width: 100%;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    }
+
+    h1, h2 {
+      text-align: center;
+      color: #2f68c0;
+    }
+
+    .form-group {
+      margin: 1rem 0;
+    }
+
+    label {
+      display: block;
+      font-weight: bold;
+      margin-bottom: 0.5rem;
+    }
+
+    input {
+      width: 100%;
+      padding: 0.75rem;
+      font-size: 1rem;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+    }
+
+    button {
+      background-color: #b3d8ff;
+      color: #333;
+      border: none;
+      padding: 0.8rem 1.5rem;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 1rem;
+      transition: 0.3s ease;
+      margin-top: 0.5rem;
+    }
+
+    button:hover {
+      background-color: #9bc9f5;
+    }
+
+    .confirmation {
+      color: green;
+      font-weight: bold;
+      margin-top: 1rem;
+      display: none;
+    }
+
+    .contact-section, .helpline-section {
+      margin-top: 1.5rem;
+    }
+
+    .card-list {
+      list-style-type: none;
+      padding-left: 0;
+    }
+
+    .card {
+      background: #f3faff;
+      padding: 0.75rem 1rem;
+      margin: 0.5rem 0;
+      border-left: 4px solid #91cfff;
+      border-radius: 10px;
+      font-size: 1rem;
+      position: relative;
+    }
+
+    .note {
+      font-size: 0.9rem;
+      color: #666;
+      margin-top: 1rem;
+      text-align: center;
+    }
+
+    .delete-btn {
+      background: #ff6b6b;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 4px 10px;
+      margin-left: 10px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      float: right;
+    }
+
+    .delete-btn:hover {
+      background: #e04848;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>📚 Mental Health Resources</h1>
+    <p style="text-align:center;">Save multiple emergency contacts and access support helplines in India.</p>
+
+    <div class="contact-section">
+      <h2>🆘 Add Emergency Contact</h2>
+      <form id="contactForm">
+        <div class="form-group">
+          <label for="name">Name of Emergency Contact</label>
+          <input type="text" id="name" name="name" placeholder="e.g., Mom, Friend" required>
+        </div>
+        <div class="form-group">
+          <label for="phone">Phone Number</label>
+          <input type="tel" id="phone" name="phone" placeholder="e.g., +91 9876543210" required>
+        </div>
+        <button type="submit">💾 Save Contact</button>
+        <div class="confirmation" id="confirmation">✅ Contact saved!</div>
+      </form>
+
+      <div class="saved-contact" id="savedContacts">
+        <h2>📇 Saved Contacts</h2>
+        <ul id="contactList" class="card-list"></ul>
+      </div>
+    </div>
+
+    <div class="helpline-section">
+      <h2>📞 Mental Health Helplines (India)</h2>
+      <ul class="card-list">
+        <li class="card">📱 <strong>iCall (TISS)</strong> – 9152987821</li>
+        <li class="card">📱 <strong>AASRA</strong> – 91-9820466726 (24/7)</li>
+        <li class="card">📱 <strong>Snehi</strong> – 91-9582208181</li>
+        <li class="card">📱 <strong>Vandrevala Foundation</strong> – 1860 2662 345 / 9999 666 555</li>
+        <li class="card">📱 <strong>Fortis Mental Health Helpline</strong> – +91-8376804102</li>
+      </ul>
+      <p class="note">These helplines are free, confidential, and available across India.</p>
+    </div>
+  </div>
+
+  <script>
+    const form = document.getElementById('contactForm');
+    const confirmation = document.getElementById('confirmation');
+    const contactList = document.getElementById('contactList');
+
+    function displayContacts() {
+      const contacts = JSON.parse(localStorage.getItem('emergencyContacts')) || [];
+      contactList.innerHTML = '';
+
+      if (contacts.length === 0) {
+        contactList.innerHTML = '<li>No contacts saved yet.</li>';
+        return;
+      }
+
+      contacts.forEach((c, index) => {
+        const item = document.createElement('li');
+        item.className = 'card';
+        item.innerHTML = `
+          👤 <strong>${c.name}</strong><br>📞 ${c.phone}
+          <button class="delete-btn" onclick="deleteContact(${index})">🗑️ Delete</button>
+        `;
+        contactList.appendChild(item);
+      });
+    }
+
+    function deleteContact(index) {
+      const contacts = JSON.parse(localStorage.getItem('emergencyContacts')) || [];
+      contacts.splice(index, 1);
+      localStorage.setItem('emergencyContacts', JSON.stringify(contacts));
+      displayContacts();
+    }
+
+    form.addEventListener('submit', function(e) {
+      e.preventDefault();
+      const name = document.getElementById('name').value.trim();
+      const phone = document.getElementById('phone').value.trim();
+
+      if (name && phone) {
+        const contact = { name, phone };
+        const contacts = JSON.parse(localStorage.getItem('emergencyContacts')) || [];
+        contacts.push(contact);
+        localStorage.setItem('emergencyContacts', JSON.stringify(contacts));
+        displayContacts();
+        form.reset();
+        confirmation.style.display = 'block';
+        setTimeout(() => confirmation.style.display = 'none', 3000);
+      }
+    });
+
+    window.onload = displayContacts;
+  </script>
+</body>
+</html>
