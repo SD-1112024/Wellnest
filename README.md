@@ -64,7 +64,7 @@ Open index.html in any modern browser.
 
 Explore different features via the navigation
 
-💡 Future Enhancements
+## 💡 Future Enhancements
 🔐 User authentication with encrypted journal storage
 
 🧠 GPT-powered chatbot for deeper conversations
