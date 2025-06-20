@@ -75,7 +75,7 @@ Explore different features via the navigation
 
 📈 Data analytics dashboard for mood trends
 
-# 👩‍💻 Developed By
-Sonika D.
+### 👩‍💻 Developed By
+#### Sonika D.
 B.E. Second Year Student
 Full Stack Development Project – WellNest
